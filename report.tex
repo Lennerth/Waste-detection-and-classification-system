@@ -22,7 +22,7 @@
   \end{center}}
 
 \title{Waste Detection Workaround: A CPU Pipeline Combining\\
-SAM 2 and Grounding DINO, and the Path Toward SAM 3}
+SAM 2 and Grounding DINO}
 \author{\fillin{author} \\ \fillin{affiliation}}
 \date{May 29, 2026}
 
@@ -37,11 +37,9 @@ Grounding DINO (referred to in project notes as ``dyno'') for open-vocabulary
 detection, and runs entirely on CPU under an explicit memory budget. A
 free-text prompt is converted into bounding boxes by Grounding DINO, and each
 box is segmented into a precise mask by SAM 2. The approach functioned as a
-working baseline, but during the work a stronger direction was identified in
-optimising SAM 3, which is why active development on the SAM 2 + Grounding DINO
-combination stopped. The repository is preserved as both a reusable CPU
-pipeline and a documented record of prompt and threshold tuning. We describe
-the methods, present qualitative outputs from the recorded runs, assess quality
+working baseline. The repository is preserved as both a reusable CPU pipeline
+and a documented record of prompt and threshold tuning. We describe the
+methods, present qualitative outputs from the recorded runs, assess quality
 where evidence exists, and outline how the scaffolding can be carried forward by
 a successor. No quantitative ground truth is available, so quality assessment is
 qualitative and clearly marked as such.
@@ -54,8 +52,7 @@ detect-then-segment design. The setting imposes two practical constraints
 visible in the codebase: execution is restricted to CPU, and memory must be
 budgeted explicitly to avoid exhausting available RAM. The prototype was
 intended as a workaround under these constraints rather than a production
-system. This document records what was built, what it produced, and why the
-project subsequently shifted toward SAM 3.
+system. This document records what was built and what it produced.
 
 \section{Methods}
 
@@ -198,23 +195,20 @@ execution is slow for the larger checkpoints, particularly
 \texttt{hiera\_large}. The removed \texttt{florence2} branch is undocumented and
 survives only in legacy logs.
 
-\paragraph{Why the project shifted.}
-As stated in the project brief, a better path was later identified in optimising
-SAM 3. This report does not speculate beyond that statement; the SAM 2 +
-Grounding DINO pipeline is retained as a baseline and as reusable scaffolding
-rather than as the intended final solution.
+\paragraph{Project status.}
+Development on this prototype has stopped and the repository is being handed off.
+The SAM 2 + Grounding DINO pipeline is retained as a baseline and as reusable
+scaffolding rather than as a finished production solution.
 
 \section{Conclusions}
 The repository is a viable CPU baseline for prompt-driven waste segmentation and
-a documented log of the exploration that preceded the SAM 3 direction. Its
-surrounding pipeline---resource management, per-run logging, NMS, and
-overlays---remains useful independently of the specific models, and is the most
-directly reusable asset for a successor.
+a documented log of the exploration carried out so far. Its surrounding
+pipeline---resource management, per-run logging, NMS, and overlays---remains
+useful independently of the specific models, and is the most directly reusable
+asset for a successor.
 
 \section{Future Work}
 \begin{itemize}
-  \item Port the detection and segmentation backend to SAM 3 once its API is
-  settled, reusing the existing scaffolding.
   \item Introduce a labelled evaluation set to enable quantitative quality
   metrics and principled threshold sweeps.
   \item Add a non-interactive run mode (config file or CLI flags) for automated
@@ -227,7 +221,6 @@ directly reusable asset for a successor.
 \begin{itemize}
   \item \fillin{SAM 2 citation}
   \item \fillin{Grounding DINO citation}
-  \item \fillin{SAM 3 reference once public}
 \end{itemize}
 
 \end{document}

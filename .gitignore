@@ -14,3 +14,6 @@ __pycache__/
 *.fdb_latexmk
 *.fls
 report.pdf
+
+# Report source is kept local, not tracked in the repository
+report.tex

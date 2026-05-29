@@ -41,8 +41,6 @@ CPU pipeline.
 
 - [`sam2_cpu_batch.py`](sam2_cpu_batch.py) - the single entry point; an
   interactive CPU batch driver for SAM 2 (+ Grounding DINO).
-- [`automatic_mask_generator_example.ipynb`](automatic_mask_generator_example.ipynb) -
-  reference notebook for SAM 2's automatic mask generator.
 - `input/` - sample input images (`image00002.jpeg` … `image00020.jpeg`).
 - `output/` - one `run_N/` folder per execution, holding overlay PNGs and a
   `parameters.txt` snapshot of the settings used.

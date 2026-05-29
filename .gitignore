@@ -18,3 +18,6 @@ report.pdf
 # Report source and its Overleaf figure copies are kept local, not tracked
 report.tex
 figures/
+
+# Reference notebook kept local, not tracked in the repository
+automatic_mask_generator_example.ipynb

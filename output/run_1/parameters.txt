@@ -1,0 +1,20 @@
+SAM2 Run Parameters
+Date: 2026-02-26 11:24:20
+Images in batch: 5
+
+SAM2 config path [default: configs/sam2.1/sam2.1_hiera_t.yaml]:
+SAM2 checkpoint path [default: sam2.1_hiera_tiny.pt]: 
+points_per_side [default: 16]: 40
+pred_iou_thresh [default: 0.8]: 0.6
+stability_score_thresh [default: 0.9]: 
+crop_n_layers [default: 0]: 
+crop_n_points_downscale_factor [default: 2]: 
+min_mask_region_area [default: 100]: 50
+max_image_size (longest side px) [default: 1024]: 
+overlay_alpha [default: 0.35]: 
+overlay_random_seed [default: 42]: 
+reserved_cpu_cores (you have 14) [default: 1]: 
+max_ram_usage_fraction (0.0-1.0) [default: 0.9]: 
+
+CPU threads: using 13 of 14 (1 reserved)
+RAM: 6.5 GB available, using up to 90% = 5.8 GB

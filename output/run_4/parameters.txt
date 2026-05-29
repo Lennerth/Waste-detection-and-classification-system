@@ -1,0 +1,16 @@
+SAM2 Run Parameters
+Date: 2026-02-26 15:59:21
+Images in batch: 5
+
+mode: gdino
+model_cfg: configs/sam2.1/sam2.1_hiera_t.yaml
+checkpoint_path: sam2.1_hiera_tiny.pt
+max_image_size: 1024
+overlay_alpha: 0.35
+overlay_random_seed: 42
+reserved_cpu_cores: 1
+max_ram_usage_fraction: 0.9
+gdino_model: IDEA-Research/grounding-dino-tiny
+detection_prompt: construction waste.
+threshold: 0.25
+text_threshold: 0.25

@@ -1,0 +1,16 @@
+SAM2 Run Parameters
+Date: 2026-02-26 17:41:00
+Images in batch: 5
+
+mode: gdino
+model_cfg: configs/sam2.1/sam2.1_hiera_b+.yaml
+checkpoint_path: sam2.1_hiera_base_plus.pt
+max_image_size: 2048
+overlay_alpha: 0.35
+overlay_random_seed: 12
+reserved_cpu_cores: 1
+max_ram_usage_fraction: 0.9
+gdino_model: IDEA-Research/grounding-dino-base
+detection_prompt: construction waste. general waste. plastic tubes. wood. plastic.
+threshold: 0.25
+text_threshold: 0.1

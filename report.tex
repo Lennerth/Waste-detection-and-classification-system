@@ -1,0 +1,233 @@
+\documentclass[11pt]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{graphicx}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{hyperref}
+\usepackage[margin=1in]{geometry}
+\usepackage{xcolor}
+\usepackage{float}
+
+% Figures are stored alongside this file under output/run_N/.
+\graphicspath{{./}{output/run_9/}{output/run_4/}{output/run_1/}}
+
+% Helper for visible placeholders the successor must resolve.
+\newcommand{\fillin}[1]{\textcolor{red}{\textbf{[FILL: #1]}}}
+\newcommand{\figplaceholder}[1]{%
+  \begin{center}
+  \fbox{\parbox{0.7\linewidth}{\centering\vspace{1.5cm}%
+  \textbf{[FIGURE PLACEHOLDER]}\\[0.5em]#1\vspace{1.5cm}}}
+  \end{center}}
+
+\title{Waste Detection Workaround: A CPU Pipeline Combining\\
+SAM 2 and Grounding DINO, and the Path Toward SAM 3}
+\author{\fillin{author} \\ \fillin{affiliation}}
+\date{May 29, 2026}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+This report documents an abandoned prototype for waste segmentation in
+photographs. The pipeline combines Meta's SAM 2 segmentation model with
+Grounding DINO (referred to in project notes as ``dyno'') for open-vocabulary
+detection, and runs entirely on CPU under an explicit memory budget. A
+free-text prompt is converted into bounding boxes by Grounding DINO, and each
+box is segmented into a precise mask by SAM 2. The approach functioned as a
+working baseline, but during the work a stronger direction was identified in
+optimising SAM 3, which is why active development on the SAM 2 + Grounding DINO
+combination stopped. The repository is preserved as both a reusable CPU
+pipeline and a documented record of prompt and threshold tuning. We describe
+the methods, present qualitative outputs from the recorded runs, assess quality
+where evidence exists, and outline how the scaffolding can be carried forward by
+a successor. No quantitative ground truth is available, so quality assessment is
+qualitative and clearly marked as such.
+\end{abstract}
+
+\section{Introduction}
+The objective of this work was to optimise object detection and classification
+of waste images by combining two pretrained models in a two-stage,
+detect-then-segment design. The setting imposes two practical constraints
+visible in the codebase: execution is restricted to CPU, and memory must be
+budgeted explicitly to avoid exhausting available RAM. The prototype was
+intended as a workaround under these constraints rather than a production
+system. This document records what was built, what it produced, and why the
+project subsequently shifted toward SAM 3.
+
+\section{Methods}
+
+\subsection{Pipeline overview}
+The single entry point, \texttt{sam2\_cpu\_batch.py}, reads every image in the
+\texttt{input/} folder, processes it according to the selected mode, and writes
+colored mask overlays to a fresh \texttt{output/run\_N/} folder together with a
+\texttt{parameters.txt} snapshot of the settings used. The data flow is
+detect (or grid-sample), segment, upscale, suppress overlaps, and overlay.
+
+\figplaceholder{Pipeline diagram: input image $\rightarrow$ resize $\rightarrow$
+Grounding DINO (boxes) $\rightarrow$ SAM 2 (masks) $\rightarrow$ upscale
+$\rightarrow$ mask-IoU NMS $\rightarrow$ overlay $\rightarrow$ run folder.
+No rendered diagram file exists yet.}
+
+\subsection{Models}
+Two detection modes are active in the current script:
+\begin{itemize}
+  \item \textbf{\texttt{gdino} (default).} Grounding DINO
+  (\texttt{IDEA-Research/grounding-dino-tiny} or \texttt{grounding-dino-base})
+  converts a text prompt into bounding boxes, and \texttt{SAM2ImagePredictor}
+  segments each box.
+  \item \textbf{\texttt{grid}.} \texttt{SAM2AutomaticMaskGenerator} segments via
+  a dense point grid with no text prompt.
+\end{itemize}
+SAM 2.1 is available in three checkpoint sizes present in the repository:
+\texttt{hiera\_tiny}, \texttt{hiera\_base\_plus}, and \texttt{hiera\_large}. A
+third detection mode, \texttt{florence2}, appears only in the legacy logs of
+\texttt{run\_2} and \texttt{run\_3} and is no longer part of the script.
+
+\subsection{Pre- and post-processing}
+\begin{itemize}
+  \item \textbf{Resize} (\texttt{resize\_for\_inference}): images are scaled so
+  the longest side does not exceed \texttt{max\_image\_size}, bounding peak
+  memory.
+  \item \textbf{Mask upscale} (\texttt{upscale\_masks}): masks computed on the
+  resized image are nearest-neighbour upscaled back to the original resolution.
+  \item \textbf{Mask-IoU NMS} (\texttt{suppress\_overlapping\_masks}): when two
+  masks overlap above \texttt{mask\_nms\_iou\_threshold}, the larger one is
+  discarded so the tighter mask is kept.
+  \item \textbf{Overlay} (\texttt{overlay\_masks}): masks are blended onto the
+  image with deterministic, seed-controlled random colors.
+\end{itemize}
+Execution is bounded by \texttt{reserved\_cpu\_cores} (PyTorch threads) and a
+\texttt{psutil}-based RAM pre-check that warns when the estimated peak exceeds
+the usable share of free memory.
+
+\subsection{Configuration history}
+The recorded runs trace the evolution of the approach:
+\begin{itemize}
+  \item \textbf{run\_1}: \texttt{grid} baseline with \texttt{hiera\_tiny},
+  \texttt{points\_per\_side=40}, \texttt{pred\_iou\_thresh=0.6}.
+  \item \textbf{run\_2, run\_3}: legacy \texttt{florence2} mode with
+  \texttt{microsoft/Florence-2-base-ft} (no overlays retained; mode since
+  removed).
+  \item \textbf{run\_4--run\_9}: \texttt{gdino} mode, progressively tuning the
+  detection prompt, detection thresholds, model size, and
+  \texttt{max\_image\_size}.
+\end{itemize}
+The final recorded configuration (run\_9) used the \texttt{grounding-dino-base}
+detector, the \texttt{hiera\_base\_plus} segmenter, the multi-class prompt
+\texttt{construction waste. general waste. plastic tubes. wood. plastic.},
+\texttt{max\_image\_size=2048}, \texttt{threshold=0.25}, and
+\texttt{text\_threshold=0.1}.
+
+\section{Results}
+All results below are qualitative. The repository contains no labelled ground
+truth, so no precision, recall, or IoU-against-truth figures can be computed
+from the current artifacts.
+
+\subsection{Final tuned run (gdino, run\_9)}
+\begin{figure}[H]
+  \centering
+  \begin{subfigure}[b]{0.48\linewidth}
+    \includegraphics[width=\linewidth]{output/run_9/image00010_overlay.png}
+    \caption{\texttt{image00010}}
+  \end{subfigure}
+  \hfill
+  \begin{subfigure}[b]{0.48\linewidth}
+    \includegraphics[width=\linewidth]{output/run_9/image00020_overlay.png}
+    \caption{\texttt{image00020}}
+  \end{subfigure}
+  \caption{Mask overlays from the final tuned \texttt{gdino} run (run\_9):
+  \texttt{grounding-dino-base} + SAM 2.1 \texttt{hiera\_base\_plus}, multi-class
+  prompt, \texttt{max\_image\_size=2048}, \texttt{text\_threshold=0.1}.}
+  \label{fig:run9}
+\end{figure}
+
+\subsection{Early versus tuned comparison}
+\begin{figure}[H]
+  \centering
+  \begin{subfigure}[b]{0.48\linewidth}
+    \includegraphics[width=\linewidth]{output/run_4/image00020_overlay.png}
+    \caption{Early \texttt{gdino} (run\_4): single-class prompt
+    \texttt{construction waste.}, \texttt{hiera\_tiny}.}
+  \end{subfigure}
+  \hfill
+  \begin{subfigure}[b]{0.48\linewidth}
+    \includegraphics[width=\linewidth]{output/run_9/image00020_overlay.png}
+    \caption{Tuned \texttt{gdino} (run\_9): multi-class prompt,
+    \texttt{hiera\_base\_plus}, larger input.}
+  \end{subfigure}
+  \caption{Qualitative effect of tuning on \texttt{image00020}: prompt
+  enrichment, a larger detector and segmenter, and a higher input resolution.}
+  \label{fig:compare}
+\end{figure}
+
+\subsection{Quality assessment}
+\figplaceholder{Quantitative quality chart (e.g. detection count or
+mask-coverage per run). No metric data or ground-truth annotations exist on
+disk; this figure cannot be produced without a labelled evaluation set.}
+
+Per-run configuration deltas observed in the recorded \texttt{parameters.txt}
+files:
+\begin{itemize}
+  \item \textbf{Prompt} grew from \texttt{construction waste.} (run\_4) to a
+  five-class prompt (run\_9), broadening the categories detected.
+  \item \textbf{Detector} moved from \texttt{grounding-dino-tiny} to
+  \texttt{grounding-dino-base}.
+  \item \textbf{Segmenter} moved from \texttt{hiera\_tiny} to
+  \texttt{hiera\_base\_plus}.
+  \item \textbf{Input resolution} (\texttt{max\_image\_size}) increased from
+  1024 to 2048.
+  \item \textbf{\texttt{text\_threshold}} was lowered from 0.25 to 0.1,
+  admitting weaker text-to-region matches.
+\end{itemize}
+
+\section{Discussion}
+\paragraph{Strengths.}
+The CLI scaffolding is model-agnostic: resource budgeting, run-folder
+management, mask-IoU NMS, and deterministic overlay rendering are independent of
+the chosen detector and segmenter. Execution is resource-aware, with an explicit
+CPU-thread reservation and a RAM pre-check. Every run is self-documenting via
+its \texttt{parameters.txt} snapshot.
+
+\paragraph{Weaknesses.}
+Quality is judged only qualitatively; there is no evaluation harness or labelled
+data. Results are sensitive to the detection prompt and thresholds. CPU
+execution is slow for the larger checkpoints, particularly
+\texttt{hiera\_large}. The removed \texttt{florence2} branch is undocumented and
+survives only in legacy logs.
+
+\paragraph{Why the project shifted.}
+As stated in the project brief, a better path was later identified in optimising
+SAM 3. This report does not speculate beyond that statement; the SAM 2 +
+Grounding DINO pipeline is retained as a baseline and as reusable scaffolding
+rather than as the intended final solution.
+
+\section{Conclusions}
+The repository is a viable CPU baseline for prompt-driven waste segmentation and
+a documented log of the exploration that preceded the SAM 3 direction. Its
+surrounding pipeline---resource management, per-run logging, NMS, and
+overlays---remains useful independently of the specific models, and is the most
+directly reusable asset for a successor.
+
+\section{Future Work}
+\begin{itemize}
+  \item Port the detection and segmentation backend to SAM 3 once its API is
+  settled, reusing the existing scaffolding.
+  \item Introduce a labelled evaluation set to enable quantitative quality
+  metrics and principled threshold sweeps.
+  \item Add a non-interactive run mode (config file or CLI flags) for automated
+  batches.
+  \item Add a pinned dependency file and an initial git commit to complete the
+  handoff.
+\end{itemize}
+
+\section*{References and Acknowledgements}
+\begin{itemize}
+  \item \fillin{SAM 2 citation}
+  \item \fillin{Grounding DINO citation}
+  \item \fillin{SAM 3 reference once public}
+\end{itemize}
+
+\end{document}

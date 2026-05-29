@@ -15,5 +15,6 @@ __pycache__/
 *.fls
 report.pdf
 
-# Report source is kept local, not tracked in the repository
+# Report source and its Overleaf figure copies are kept local, not tracked
 report.tex
+figures/
